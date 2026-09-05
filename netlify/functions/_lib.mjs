@@ -35,12 +35,10 @@ export async function parseBody(request) {
   }
 }
 
-/**
- * Membaca JSON dari Netlify Blobs.
- *
- * consistency: "strong" digunakan supaya data yang baru
- * disimpan dapat langsung terbaca oleh API.
- */
+/* =====================================================
+   NETLIFY BLOBS - JSON
+===================================================== */
+
 export async function getJson(store, key, fallback = null) {
   const value = await store.get(key, {
     type: "json",
@@ -54,9 +52,17 @@ export async function setJson(store, key, value) {
   await store.setJSON(key, value);
 }
 
+/* =====================================================
+   ID
+===================================================== */
+
 export function randomId(prefix = "id") {
   return `${prefix}_${crypto.randomUUID()}`;
 }
+
+/* =====================================================
+   SLUG
+===================================================== */
 
 export function slugify(value) {
   return String(value || "")
@@ -67,6 +73,10 @@ export function slugify(value) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+
+/* =====================================================
+   PASSWORD
+===================================================== */
 
 function timingEqual(a, b) {
   const aa = Buffer.from(String(a));
@@ -112,6 +122,10 @@ export async function verifyPassword(password, stored) {
     hex
   );
 }
+
+/* =====================================================
+   SESSION
+===================================================== */
 
 export function createSession(username) {
   const payload = `${username}|${Date.now()}`;
@@ -237,6 +251,10 @@ export const sessionCookie = token =>
 export const clearSessionCookie =
   "desa_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
 
+/* =====================================================
+   RECORDS
+===================================================== */
+
 export async function listRecords(prefix) {
   const store = getDataStore();
 
@@ -291,6 +309,14 @@ export async function deleteRecord(prefix, id) {
   );
 }
 
+/* =====================================================
+   SITE SETTINGS
+   DESA PANCANEGARA
+   KECAMATAN PABUARAN
+   KABUPATEN SERANG
+   PROVINSI BANTEN
+===================================================== */
+
 export async function getSettings() {
   const store = getDataStore();
 
@@ -300,26 +326,35 @@ export async function getSettings() {
     null
   );
 
+  /*
+   * Jika data site sudah tersimpan di Netlify Blobs,
+   * gunakan data tersebut.
+   *
+   * Jika belum ada, gunakan data default
+   * Desa Pancanegara Kabupaten Serang Banten.
+   */
+
   return existing || {
     siteName: "Desa Pancanegara",
 
     tagline:
       "Mewujudkan Desa Maju, Mandiri dan Sejahtera Bersama Masyarakat",
 
-    kecamatan: "Tulang Bawang Tengah",
+    kecamatan: "Pabuaran",
 
-    kabupaten: "Tulang Bawang Barat",
+    kabupaten: "Serang",
 
-    provinsi: "Lampung",
+    provinsi: "Banten",
 
-    phone: "(0726) 123456",
+    phone: "",
 
-    whatsapp: "6281234567890",
+    whatsapp: "",
 
-    email: "desa.pancanegara@gmail.com",
+    email:
+      "desa.pancanegara@gmail.com",
 
     address:
-      "Jl. Raya Pancanegara No. 01, Tulang Bawang Tengah, Lampung",
+      "Jl. Raya Palka, Pancanegara, Kecamatan Pabuaran, Kabupaten Serang, Banten 42163",
 
     serviceHours:
       "Senin-Jumat, 08.00-15.00",
@@ -327,9 +362,9 @@ export async function getSettings() {
     mapsUrl:
       "https://www.google.com/maps",
 
-    latitude: "-4.4000",
+    latitude: "",
 
-    longitude: "105.1000",
+    longitude: "",
 
     vision:
       "Terwujudnya masyarakat Desa Pancanegara yang maju, mandiri, sejahtera, dan berdaya saing.",
@@ -341,33 +376,171 @@ export async function getSettings() {
       "Mendorong partisipasi masyarakat dalam pembangunan."
     ],
 
-    population: "2.745 jiwa",
+    population:
+      "5.647 jiwa",
 
-    area: "1.245 Ha",
+    area:
+      "545 Ha (5,45 km²)",
 
-    hamlets: "5 Dusun",
+    hamlets:
+      "5 Dusun",
 
-    potential: "Pertanian & UMKM",
+    potential:
+      "Pertanian & UMKM",
+
+    /*
+     * Jangan menghapus logo dan foto.
+     * Nilai ini dapat diisi melalui Admin.
+     */
 
     logoKey: "",
 
     officePhotoKey: "",
 
     officePhotoUrl: "",
+
     backgroundUrl: ""
   };
 }
 
+/* =====================================================
+   SAVE SITE SETTINGS
+===================================================== */
+
 export async function saveSettings(value) {
-  await setJson(
-    getDataStore(),
+  /*
+   * Ambil data lama terlebih dahulu agar data yang tidak
+   * dikirim oleh Admin tidak hilang.
+   */
+
+  const store = getDataStore();
+
+  const current = await getJson(
+    store,
     "site/settings",
-    value
+    {}
   );
+
+  const incoming =
+    value && typeof value === "object"
+      ? value
+      : {};
+
+  /*
+   * Gabungkan data lama dan data baru.
+   * Dengan cara ini foto kantor/background/logo
+   * tidak hilang ketika hanya mengubah lokasi.
+   */
+
+  const merged = {
+    ...current,
+    ...incoming,
+
+    siteName:
+      String(
+        incoming.siteName ??
+        current.siteName ??
+        "Desa Pancanegara"
+      ).trim(),
+
+    tagline:
+      String(
+        incoming.tagline ??
+        current.tagline ??
+        "Mewujudkan Desa Maju, Mandiri dan Sejahtera Bersama Masyarakat"
+      ).trim(),
+
+    kecamatan:
+      String(
+        incoming.kecamatan ??
+        current.kecamatan ??
+        "Pabuaran"
+      ).trim(),
+
+    kabupaten:
+      String(
+        incoming.kabupaten ??
+        current.kabupaten ??
+        "Serang"
+      ).trim(),
+
+    provinsi:
+      String(
+        incoming.provinsi ??
+        current.provinsi ??
+        "Banten"
+      ).trim(),
+
+    address:
+      String(
+        incoming.address ??
+        current.address ??
+        "Jl. Raya Palka, Pancanegara, Kecamatan Pabuaran, Kabupaten Serang, Banten 42163"
+      ).trim(),
+
+    population:
+      String(
+        incoming.population ??
+        current.population ??
+        "5.647 jiwa"
+      ).trim(),
+
+    area:
+      String(
+        incoming.area ??
+        current.area ??
+        "545 Ha (5,45 km²)"
+      ).trim(),
+
+    potential:
+      String(
+        incoming.potential ??
+        current.potential ??
+        "Pertanian & UMKM"
+      ).trim(),
+
+    officePhotoUrl:
+      String(
+        incoming.officePhotoUrl ??
+        current.officePhotoUrl ??
+        ""
+      ).trim(),
+
+    backgroundUrl:
+      String(
+        incoming.backgroundUrl ??
+        current.backgroundUrl ??
+        ""
+      ).trim(),
+
+    officePhotoKey:
+      String(
+        incoming.officePhotoKey ??
+        current.officePhotoKey ??
+        ""
+      ).trim(),
+
+    logoKey:
+      String(
+        incoming.logoKey ??
+        current.logoKey ??
+        ""
+      ).trim()
+  };
+
+  await setJson(
+    store,
+    "site/settings",
+    merged
+  );
+
+  return merged;
 }
+
+/* =====================================================
+   SANITIZE
+===================================================== */
 
 export function sanitize(value) {
   return String(value ?? "").trim();
 }
-
-
