@@ -136,8 +136,8 @@ function imageFallback(img) {
 ========================================================= */
 
 function mapEmbed(lat, lng) {
-  const latitude = Number(lat);
-  const longitude = Number(lng);
+  const latitude = Number(String(lat ?? "").replace("°", "").trim());
+  const longitude = Number(String(lng ?? "").replace("°", "").trim());
 
   if (
     !Number.isFinite(latitude) ||
