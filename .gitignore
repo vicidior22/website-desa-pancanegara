@@ -1,0 +1,9 @@
+﻿node_modules/
+.netlify/
+.env
+*.zip
+*.lnk
+*.backup
+*.backup-*
+*.before-fix
+*.backup*
